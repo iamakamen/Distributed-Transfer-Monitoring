@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dtms-prometheus-config
-  namespace: dtms
+  namespace: iamakamen-dev
 data:
   prometheus.yml: |
     global:

@@ -1,18 +1,53 @@
-# Big binaries / tools downloaded at runtime
-monitoring/prometheus-bin/
-monitoring/prometheus-*.tar.gz
-
-# Python cache and compiled files
+########################################
+# Python
+########################################
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+*.sqlite
 
 # Virtual environments
 venv/
 .env/
+.env*/
 
-# Data files generated at runtime (not tracked)
-data/*.csv
 
-# Docker build cache (optional)
+########################################
+# Project Runtime Data
+########################################
+data/
+logs/
+prometheus-data/
+*.db
+*.csv
+
+
+########################################
+# Containers / Build / Cache
+########################################
 *.log
+*.tar
+*.tar.gz
+*.tgz
+.cache/
+dist/
+build/
+*.pid
+
+
+########################################
+# Monitoring / Tools
+########################################
+monitoring/prometheus-bin/
+monitoring/prometheus-*.tar.gz
+oc.tar.gz
+
+
+########################################
+# IDE / Development Environment
+########################################
+.vscode/
+.devcontainer/
+.DS_Store
