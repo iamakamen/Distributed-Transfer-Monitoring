@@ -1,7 +1,18 @@
 # Big binaries / tools downloaded at runtime
 monitoring/prometheus-bin/
-monitoring/prometheus-3.8.0.linux-amd64.tar.gz
+monitoring/prometheus-*.tar.gz
 
-# Data files generated at runtime
-data/*.csv__pycache__/
+# Python cache and compiled files
+__pycache__/
 *.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.env/
+
+# Data files generated at runtime (not tracked)
+data/*.csv
+
+# Docker build cache (optional)
+*.log
