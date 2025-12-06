@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-prometheus
+  namespace: dtms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-prometheus
+  template:
+    metadata:
+      labels:
+        app: dtms-prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--web.listen-address=0.0.0.0:9090"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: dtms-prometheus-config
+            items:
+              - key: prometheus.yml
+                path: prometheus.yml

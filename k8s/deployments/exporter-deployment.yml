@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-exporter
+  namespace: dtms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-exporter
+  template:
+    metadata:
+      labels:
+        app: dtms-exporter
+    spec:
+      containers:
+        - name: exporter
+          image: dtms-app:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "exporter.exporter"]
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+      volumes:
+        - name: data-volume
+          emptyDir: {}

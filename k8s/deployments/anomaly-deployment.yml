@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-anomaly
+  namespace: dtms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-anomaly
+  template:
+    metadata:
+      labels:
+        app: dtms-anomaly
+    spec:
+      containers:
+        - name: anomaly
+          image: dtms-app:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "anomaly.anomaly_exporter"]
+          ports:
+            - containerPort: 8001
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+      volumes:
+        - name: data-volume
+          emptyDir: {}
