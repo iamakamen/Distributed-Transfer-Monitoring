@@ -1,3 +1,6 @@
+import csv
+from datetime import datetime
+
 import os
 import time
 from pathlib import Path
@@ -21,6 +24,50 @@ TRANSFER_FAILURES = Counter(
     "dtms_transfer_failures_total",
     "Total number of failed transfers",
 )
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+TRANSFERS_CSV = DATA_DIR / "transfers.csv"
+
+
+def append_transfer_to_csv(metrics: dict) -> None:
+    """
+    Append a single transfer record to a CSV file.
+    Creates the file with header if it does not exist yet.
+    """
+    file_exists = TRANSFERS_CSV.exists()
+
+    with open(TRANSFERS_CSV, "a", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "timestamp_iso",
+                "timestamp_unix",
+                "bytes",
+                "duration",
+                "throughput_bytes_per_sec",
+                "status",
+            ],
+        )
+        if not file_exists:
+            writer.writeheader()
+
+        duration = metrics["duration"]
+        bytes_ = metrics["bytes"]
+        throughput = bytes_ / duration if duration > 0 else 0.0
+
+        writer.writerow(
+            {
+                "timestamp_iso": datetime.utcfromtimestamp(
+                    metrics["timestamp"]
+                ).isoformat() + "Z",
+                "timestamp_unix": metrics["timestamp"],
+                "bytes": bytes_,
+                "duration": duration,
+                "throughput_bytes_per_sec": throughput,
+                "status": metrics["status"],
+            }
+        )
 
 
 def run_exporter() -> None:
@@ -50,6 +97,8 @@ def run_exporter() -> None:
 
             TRANSFER_BYTES.inc(metrics["bytes"])
             TRANSFER_DURATION.observe(duration)
+
+            append_transfer_to_csv(metrics)
 
             print(
                 f"[TRANSFER] bytes={metrics['bytes']} duration={duration:.4f}s"
