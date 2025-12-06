@@ -1,0 +1,3 @@
+# Big binaries / tools downloaded at runtime
+monitoring/prometheus-bin/
+monitoring/prometheus-3.8.0.linux-amd64.tar.gz
