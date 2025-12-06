@@ -1,0 +1,14 @@
+.git
+.gitignore
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Data generated at runtime
+data/*.csv
+
+# Local Prometheus binaries / tar
+monitoring/prometheus-bin
+monitoring/prometheus-3.8.0.linux-amd64.tar.gz
