@@ -3,4 +3,5 @@ monitoring/prometheus-bin/
 monitoring/prometheus-3.8.0.linux-amd64.tar.gz
 
 # Data files generated at runtime
-data/*.csv
+data/*.csv__pycache__/
+*.pyc
