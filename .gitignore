@@ -20,6 +20,7 @@ venv/
 data/
 logs/
 prometheus-data/
+simulator/
 *.db
 *.csv
 
@@ -35,6 +36,7 @@ prometheus-data/
 dist/
 build/
 *.pid
+test-system.sh
 
 
 ########################################
