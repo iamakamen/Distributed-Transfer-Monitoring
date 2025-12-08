@@ -1,0 +1,15 @@
+# HTTP + metrics
+requests
+httpx
+prometheus_client
+
+# Kafka client
+kafka-python
+
+# Data / ML
+numpy
+pandas
+scikit-learn
+
+# Spark + Kafka
+pyspark==3.5.1

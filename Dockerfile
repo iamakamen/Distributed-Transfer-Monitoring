@@ -1,20 +1,19 @@
 FROM python:3.12-slim
 
-WORKDIR /app
-
-# System deps (optional minimal)
+# Install Java runtime for PySpark
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+    default-jre \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY . .
+WORKDIR /app
 
 # Install Python dependencies
-RUN pip install --no-cache-dir \
-    prometheus-client \
-    pandas \
-    scikit-learn
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Default command (can be overridden by docker-compose)
+# Copy source code
+COPY . .
+
+# Default command (overridden by docker-compose per service)
 CMD ["python", "-m", "exporter.exporter"]
