@@ -23,6 +23,8 @@ prometheus-data/
 simulator/
 *.db
 *.csv
+*.parquet
+sample_data/parquet/
 
 
 ########################################

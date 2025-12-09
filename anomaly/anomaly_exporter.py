@@ -1,28 +1,35 @@
 import time
+import sys
 from pathlib import Path
 
 import pandas as pd
 from prometheus_client import start_http_server, Gauge
 from sklearn.ensemble import IsolationForest
 
+# Unbuffered stdout for Docker logging
+sys.stdout.reconfigure(line_buffering=True)
+
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 TRANSFERS_CSV = DATA_DIR / "transfers.csv"
 
-# Prometheus metrics
+# Prometheus metrics (now per site)
 ANOMALY_COUNT = Gauge(
     "dtms_anomaly_count",
-    "Number of anomalous transfers detected in the dataset",
+    "Number of anomalous transfers detected in the dataset per site",
+    ["site"],
 )
 
 ANOMALY_RATIO = Gauge(
     "dtms_anomaly_ratio",
-    "Fraction of transfers detected as anomalous",
+    "Fraction of transfers detected as anomalous per site",
+    ["site"],
 )
 
 ANOMALY_SCORE_MIN = Gauge(
     "dtms_anomaly_score_min",
-    "Minimum (most anomalous) IsolationForest score in the dataset",
+    "Minimum (most anomalous) IsolationForest score in the dataset per site",
+    ["site"],
 )
 
 
@@ -40,6 +47,11 @@ def load_data():
         return None
 
     df["throughput_bytes_per_sec"] = df["throughput_bytes_per_sec"].fillna(0)
+
+    # Ensure we have a site column (for multi-site metrics)
+    if "site" not in df.columns:
+        df["site"] = "UNKNOWN"
+
     return df
 
 
@@ -64,28 +76,28 @@ def compute_anomalies(df):
 def update_metrics():
     df = load_data()
     if df is None:
-        # Set zeros if we have no data
-        ANOMALY_COUNT.set(0)
-        ANOMALY_RATIO.set(0)
-        ANOMALY_SCORE_MIN.set(0)
+        # No data yet; do not update metrics
+        print("[ANOMALY_EXPORTER] No data available; metrics not updated.")
         return
 
     df = compute_anomalies(df)
 
-    total = len(df)
-    anomalies = (df["anomaly_label"] == -1).sum()
+    # Compute metrics per site
+    for site, site_df in df.groupby("site"):
+        total = len(site_df)
+        anomalies = (site_df["anomaly_label"] == -1).sum()
 
-    ratio = anomalies / total if total > 0 else 0.0
-    min_score = df["anomaly_score"].min() if not df.empty else 0.0
+        ratio = anomalies / total if total > 0 else 0.0
+        min_score = site_df["anomaly_score"].min() if not site_df.empty else 0.0
 
-    ANOMALY_COUNT.set(float(anomalies))
-    ANOMALY_RATIO.set(float(ratio))
-    ANOMALY_SCORE_MIN.set(float(min_score))
+        ANOMALY_COUNT.labels(site=site).set(float(anomalies))
+        ANOMALY_RATIO.labels(site=site).set(float(ratio))
+        ANOMALY_SCORE_MIN.labels(site=site).set(float(min_score))
 
-    print(
-        f"[ANOMALY_EXPORTER] total={total} anomalies={anomalies} "
-        f"ratio={ratio:.3f} min_score={min_score:.4f}"
-    )
+        print(
+            f"[ANOMALY_EXPORTER] site={site} total={total} anomalies={anomalies} "
+            f"ratio={ratio:.3f} min_score={min_score:.4f}"
+        )
 
 
 def main():

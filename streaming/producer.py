@@ -6,6 +6,18 @@ from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, KafkaError
 
 
+# -------------------------------------------------
+# Multi-site configuration
+# -------------------------------------------------
+SITES = ["SITE_A", "SITE_B", "SITE_C"]
+
+
+def random_site_pair():
+    """Pick two different sites: (src_site, dst_site)."""
+    src_site, dst_site = random.sample(SITES, 2)
+    return src_site, dst_site
+
+
 def create_producer(bootstrap_servers: str) -> KafkaProducer:
     """Retry until Kafka is available."""
     while True:
@@ -35,11 +47,30 @@ def main():
 
     while True:
         try:
+            # Pick a random source and destination site
+            src_site, dst_site = random_site_pair()
+
+            # Simulate transfer characteristics
+            bytes_ = random.randint(50_000, 5_000_000)  # 50 KB to ~5 MB
+            latency_ms = round(random.uniform(5, 250), 2)  # 5–250 ms
+            duration_sec = latency_ms / 1000.0
+
+            # Mostly OK, sometimes FAIL
+            status = "OK" if random.random() < 0.95 else "FAILED"
+
             record = {
+                "event_type": "data_transfer",
+                "src_site": src_site,
+                "dst_site": dst_site,
+                "reporting_site": src_site,
+                "protocol": "file_transfer",
+                "bytes": bytes_,
+                "duration": duration_sec,
+                "latency_ms": latency_ms,
+                "status": status,
                 "timestamp": time.time(),
-                "bytes": random.randint(5_000, 50_000),
-                "latency_ms": round(random.uniform(5, 250), 2),
             }
+
             future = producer.send("dtms_transfers", record)
             # Wait for the send to complete with a timeout
             future.get(timeout=5)
@@ -50,7 +81,7 @@ def main():
         except Exception as e:
             print(f"[producer] Unexpected error: {type(e).__name__}: {e}")
             time.sleep(1)
-        
+
         time.sleep(1)
 
 

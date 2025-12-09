@@ -13,3 +13,9 @@ scikit-learn
 
 # Spark + Kafka
 pyspark==3.5.1
+
+# API
+fastapi
+uvicorn
+requests
+pyarrow

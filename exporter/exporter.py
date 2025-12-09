@@ -9,21 +9,32 @@ from prometheus_client import start_http_server, Counter, Histogram
 from simulator.transfer_simulator import simulate_single_transfer
 
 
-# Prometheus metrics
+# ----------------------------------------
+# NEW: Site awareness via environment variable
+# ----------------------------------------
+SITE_NAME = os.getenv("SITE_NAME", "SITE_A")
+print(f"[EXPORTER] Running in site: {SITE_NAME}")
+
+
+# Prometheus metrics WITH site label
 TRANSFER_BYTES = Counter(
     "dtms_transfer_bytes_total",
     "Total bytes transferred by the simulator",
+    ["site"],
 )
 
 TRANSFER_DURATION = Histogram(
     "dtms_transfer_duration_seconds",
     "Histogram of transfer durations in seconds",
+    ["site"],
 )
 
 TRANSFER_FAILURES = Counter(
     "dtms_transfer_failures_total",
     "Total number of failed transfers",
+    ["site"],
 )
+
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
@@ -47,6 +58,7 @@ def append_transfer_to_csv(metrics: dict) -> None:
                 "duration",
                 "throughput_bytes_per_sec",
                 "status",
+                "site",  # NEW column
             ],
         )
         if not file_exists:
@@ -66,6 +78,7 @@ def append_transfer_to_csv(metrics: dict) -> None:
                 "duration": duration,
                 "throughput_bytes_per_sec": throughput,
                 "status": metrics["status"],
+                "site": SITE_NAME,  # NEW column value
             }
         )
 
@@ -95,17 +108,18 @@ def run_exporter() -> None:
             metrics = simulate_single_transfer(dummy_file, dest_file)
             duration = metrics["duration"]
 
-            TRANSFER_BYTES.inc(metrics["bytes"])
-            TRANSFER_DURATION.observe(duration)
+            # USE labelling
+            TRANSFER_BYTES.labels(site=SITE_NAME).inc(metrics["bytes"])
+            TRANSFER_DURATION.labels(site=SITE_NAME).observe(duration)
 
             append_transfer_to_csv(metrics)
 
             print(
-                f"[TRANSFER] bytes={metrics['bytes']} duration={duration:.4f}s"
+                f"[TRANSFER][{SITE_NAME}] bytes={metrics['bytes']} duration={duration:.4f}s"
             )
         except Exception as e:
-            print(f"[ERROR] Transfer failed: {e}")
-            TRANSFER_FAILURES.inc()
+            print(f"[ERROR][{SITE_NAME}] Transfer failed: {e}")
+            TRANSFER_FAILURES.labels(site=SITE_NAME).inc()
 
         time.sleep(2)
 

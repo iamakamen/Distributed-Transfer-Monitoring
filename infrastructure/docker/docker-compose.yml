@@ -48,16 +48,53 @@ services:
       - BOOTSTRAP_SERVERS=kafka:9092
     ports:
       - "8002:8002"
+    volumes:
+      - ../../sample_data:/app/sample_data   # NEW: mount for Parquet output
     restart: always
 
-  exporter:
+  # ---------------------------
+  # Multi-site exporters
+  # ---------------------------
+  exporter-site-a:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile
-    container_name: dtms-exporter
+    container_name: dtms-exporter-site-a
     command: ["python", "-m", "exporter.exporter"]
+    environment:
+      - SITE_NAME=SITE_A
+    # Expose on host for debugging (Codespaces forwards 8000)
     ports:
       - "8000:8000"
+    volumes:
+      - ../../data:/app/data
+    restart: always
+
+  exporter-site-b:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: dtms-exporter-site-b
+    command: ["python", "-m", "exporter.exporter"]
+    environment:
+      - SITE_NAME=SITE_B
+    # Only inside Docker network; Prometheus can still scrape it
+    expose:
+      - "8000"
+    volumes:
+      - ../../data:/app/data
+    restart: always
+
+  exporter-site-c:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: dtms-exporter-site-c
+    command: ["python", "-m", "exporter.exporter"]
+    environment:
+      - SITE_NAME=SITE_C
+    expose:
+      - "8000"
     volumes:
       - ../../data:/app/data
     restart: always
@@ -69,7 +106,7 @@ services:
     container_name: dtms-anomaly-exporter
     command: ["python", "-m", "anomaly.anomaly_exporter"]
     depends_on:
-      - exporter
+      - exporter-site-a
     ports:
       - "8001:8001"
     volumes:
@@ -95,4 +132,20 @@ services:
       - prometheus
     ports:
       - "3000:3000"
+    restart: always
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: dtms-api
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8003"]
+    depends_on:
+      - anomaly
+    environment:
+      - ANOMALY_METRICS_URL=http://anomaly:8001/metrics
+    ports:
+      - "8003:8003"
+    volumes:
+      - ../..:/app
     restart: always
