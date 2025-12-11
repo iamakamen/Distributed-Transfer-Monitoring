@@ -7,7 +7,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: data-check
-    image: ghcr.io/iamakamen/dtms-sys:correlation
+    image: ghcr.io/iamakamen/dtms-sys:v1
     command:
     - bash
     - -lc

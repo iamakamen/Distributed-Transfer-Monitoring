@@ -39,7 +39,12 @@ def load_data():
         print(f"[ANOMALY_EXPORTER] No transfers.csv found at {TRANSFERS_CSV}")
         return None
 
-    df = pd.read_csv(TRANSFERS_CSV)
+    try:
+        # Skip bad lines to handle malformed CSV rows
+        df = pd.read_csv(TRANSFERS_CSV, error_bad_lines=False, warn_bad_lines=False)
+    except Exception as e:
+        print(f"[ANOMALY_EXPORTER] Error reading CSV: {e}")
+        return None
 
     # Basic filtering
     df = df[df["duration"] > 0].copy()
