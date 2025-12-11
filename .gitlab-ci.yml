@@ -36,7 +36,7 @@ build_dtms_sys:
 
 deploy_to_oc:
   image:
-    name: registry.redhat.io/openshift4/ose-cli:latest
+    name: quay.io/openshift/origin-cli:latest
   stage: deploy
   script:
     - echo "Deploying to OpenShift..."
