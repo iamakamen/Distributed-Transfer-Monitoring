@@ -42,7 +42,14 @@ def load_site_timeseries(minutes=30):
             else:
                 df = pd.concat([pd.read_parquet(str(f)) for f in files], ignore_index=True)
     elif TRANSFERS_CSV.exists():
-        df = pd.read_csv(TRANSFERS_CSV)
+        try:
+            df = pd.read_csv(TRANSFERS_CSV, on_bad_lines='skip')
+            if df.empty:
+                print("[CORRELATION] CSV is empty after skipping bad lines")
+                df = pd.DataFrame()
+        except Exception as e:
+            print(f"[CORRELATION] Error reading CSV: {e}")
+            df = pd.DataFrame()
     else:
         df = pd.DataFrame()
 
@@ -79,7 +86,14 @@ def load_anomalies(minutes=30):
     since = now - (minutes * 60)
     if not ANOMALIES_CSV.exists():
         return pd.DataFrame()
-    df = pd.read_csv(ANOMALIES_CSV)
+    try:
+        df = pd.read_csv(ANOMALIES_CSV, on_bad_lines='skip')
+        if df.empty:
+            print("[CORRELATION] Anomalies CSV is empty after skipping bad lines")
+            return pd.DataFrame()
+    except Exception as e:
+        print(f"[CORRELATION] Error reading anomalies CSV: {e}")
+        return pd.DataFrame()
     if "timestamp_unix" not in df.columns and "timestamp" in df.columns:
         df["timestamp_unix"] = df["timestamp"]
     df = df[df["timestamp_unix"] >= since].copy()
