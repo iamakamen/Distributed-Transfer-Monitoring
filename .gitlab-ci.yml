@@ -39,30 +39,17 @@ deploy_to_oc:
     name: registry.redhat.io/openshift4/ose-cli:latest
   stage: deploy
   script:
-    - echo "Deploy stage: substitute dtms-sys image references with $IMAGE_TAG and apply manifests"
-    # Login to OpenShift
+    - echo "Deploy stage: substitute dtms-sys image references and apply manifests"
     - oc login $OC_SERVER --token="$OC_TOKEN" --insecure-skip-tls-verify=true
     - oc project $OC_PROJECT
-    #
-    # Replace references in k8s manifests that include 'ghcr.io/<user>/dtms-sys:*' (this replaces :correlation or :v1 etc)
-    # We only change manifests under infrastructure/k8s that reference the dtms-sys image.
     - MANIFEST_DIR="infrastructure/k8s"
     - echo "Replacing dtms-sys image tags in YAML manifests under $MANIFEST_DIR"
-    - find $MANIFEST_DIR -type f -name "*.yml" -print0 | xargs -0 sed -i "s#ghcr.io/$GHCR_USER/dtms-sys:[^[:space:\"\']]*#ghcr.io/$GHCR_USER/dtms-sys:$IMAGE_TAG#g" || true
-    #
-    # (Optional safety) show what was changed for review
-    - echo "---- Changed manifests (first 200 lines) ----"
-    - find $MANIFEST_DIR -type f -name "*.yml" -print0 | xargs -0 -n1 sh -c 'echo "---- $0 ----"; sed -n "1,200p" "$0"; echo "";' 
-    #
-    # Apply manifests (deployments, services, cronjobs)
+    - find $MANIFEST_DIR -type f -name "*.yml" -print0 | xargs -0 sed -i "s|ghcr.io/$GHCR_USER/dtms-sys:[^ \"']*|ghcr.io/$GHCR_USER/dtms-sys:$IMAGE_TAG|g" || true
+    - echo "---- Applying manifests ----"
     - oc apply -f $MANIFEST_DIR/deployments/ -n $OC_PROJECT || true
     - oc apply -f $MANIFEST_DIR/services/ -n $OC_PROJECT || true
     - oc apply -f $MANIFEST_DIR/cronjobs/ -n $OC_PROJECT || true
-    #
-    # Ensure cronjob uses the new image (safeguard): set image (idempotent)
     - oc set image cronjob/dtms-correlation correlation=ghcr.io/$GHCR_USER/dtms-sys:$IMAGE_TAG -n $OC_PROJECT || true
-    #
-    # Restart key deployments to pick up any changes (graceful)
     - oc rollout restart deployment/dtms-api -n $OC_PROJECT || true
     - oc rollout restart deployment/dtms-freshness -n $OC_PROJECT || true
-    - echo "Deployment step finished"
+    - echo "Deployment finished"
