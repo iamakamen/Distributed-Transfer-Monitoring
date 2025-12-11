@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-pushgateway
+  labels:
+    app: dtms-pushgateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-pushgateway
+  template:
+    metadata:
+      labels:
+        app: dtms-pushgateway
+    spec:
+      containers:
+        - name: pushgateway
+          image: prom/pushgateway:latest
+          ports:
+            - containerPort: 9091
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

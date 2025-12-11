@@ -55,3 +55,4 @@ oc.tar.gz
 .vscode/
 .devcontainer/
 .DS_Store
+tmp/

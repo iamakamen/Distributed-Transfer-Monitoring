@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: exporter
-  namespace: iamakamen-dev
+  name: exporter-site-c
+  labels:
+    app: exporter-site-c
 spec:
   selector:
-    app: dtms-exporter
+    app: exporter-site-c
   ports:
-    - name: http
+    - name: http-metrics
       port: 8000
       targetPort: 8000
   type: ClusterIP
-  

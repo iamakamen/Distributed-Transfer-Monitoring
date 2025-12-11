@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-spark-exporter
+  labels:
+    app: dtms-spark-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-spark-exporter
+  template:
+    metadata:
+      labels:
+        app: dtms-spark-exporter
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: spark-exporter
+          image: ghcr.io/iamakamen/dtms-sys:v1
+          imagePullPolicy: Always
+          command: ["python", "-u", "-m", "streaming.spark_stream"]
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: IVY_CACHE_DIR
+              value: "/tmp/.ivy2"
+          ports:
+            - containerPort: 8002
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          startupProbe:
+            httpGet:
+              path: /metrics
+              port: 8002
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8002
+            initialDelaySeconds: 120
+            periodSeconds: 10
+          volumeMounts:
+            - name: spark-cache
+              mountPath: /tmp/.ivy2
+            - name: dtms-data
+              mountPath: /app/data
+      volumes:
+        - name: spark-cache
+          emptyDir: {}
+        - name: dtms-data
+          persistentVolumeClaim:
+            claimName: dtms-data

@@ -15,5 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY . .
 
+# Enable unbuffered Python output for Docker logging
+ENV PYTHONUNBUFFERED=1
+
 # Default command (overridden by docker-compose per service)
-CMD ["python", "-m", "exporter.exporter"]
+CMD ["python", "-u", "-m", "exporter.exporter"]

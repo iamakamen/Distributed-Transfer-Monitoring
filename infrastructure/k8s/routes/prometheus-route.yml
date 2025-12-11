@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+spec:
+  host: prometheus-iamakamen-dev.apps.rm3.7wse.p1.openshiftapps.com
+  to:
+    kind: Service
+    name: prometheus
+    weight: 100
+  port:
+    targetPort: 9090
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow

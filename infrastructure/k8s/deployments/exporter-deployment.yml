@@ -21,8 +21,9 @@ spec:
           ports:
             - containerPort: 8000
           volumeMounts:
-            - name: data-volume
+            - name: dtms-data
               mountPath: /app/data
       volumes:
-        - name: data-volume
-          emptyDir: {}
+        - name: dtms-data
+          persistentVolumeClaim:
+            claimName: dtms-data

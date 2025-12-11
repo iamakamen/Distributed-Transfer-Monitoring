@@ -1,35 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: anomaly
+  name: exporter-site-b
   labels:
-    app: anomaly
+    app: exporter-site-b
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: anomaly
+      app: exporter-site-b
   template:
     metadata:
       labels:
-        app: anomaly
+        app: exporter-site-b
     spec:
       imagePullSecrets:
         - name: ghcr-secret
       containers:
-        - name: anomaly-exporter
+        - name: exporter
           image: ghcr.io/iamakamen/dtms-sys:v1
-          imagePullPolicy: Always
-          command: ["python", "-m", "anomaly.anomaly_exporter"]
+          command: ["python", "-m", "exporter.exporter"]
+          env:
+            - name: SITE_NAME
+              value: "SITE_B"
           ports:
-            - containerPort: 8001
+            - containerPort: 8000
           resources:
             requests:
-              cpu: "200m"
-              memory: "512Mi"
+              cpu: "50m"
+              memory: "64Mi"
             limits:
-              cpu: "1000m"
-              memory: "1024Mi"
+              cpu: "200m"
+              memory: "256Mi"
           volumeMounts:
             - name: dtms-data
               mountPath: /app/data

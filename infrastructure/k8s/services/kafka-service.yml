@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  labels:
+    app: dtms-kafka
+spec:
+  selector:
+    app: dtms-kafka
+  ports:
+    - name: broker
+      port: 9092
+      targetPort: 9092
+  type: ClusterIP

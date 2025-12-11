@@ -10,6 +10,7 @@ kafka-python
 numpy
 pandas
 scikit-learn
+scipy
 
 # Spark + Kafka
 pyspark==3.5.1

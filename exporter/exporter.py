@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 
 import os
 import time
@@ -70,9 +70,9 @@ def append_transfer_to_csv(metrics: dict) -> None:
 
         writer.writerow(
             {
-                "timestamp_iso": datetime.utcfromtimestamp(
-                    metrics["timestamp"]
-                ).isoformat() + "Z",
+                "timestamp_iso": datetime.fromtimestamp(
+                    metrics["timestamp"], tz=timezone.utc
+                ).isoformat().replace("+00:00", "Z"),
                 "timestamp_unix": metrics["timestamp"],
                 "bytes": bytes_,
                 "duration": duration,

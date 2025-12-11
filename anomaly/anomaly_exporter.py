@@ -12,6 +12,7 @@ sys.stdout.reconfigure(line_buffering=True)
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 TRANSFERS_CSV = DATA_DIR / "transfers.csv"
+ANOMALIES_CSV = DATA_DIR / "anomalies.csv"
 
 # Prometheus metrics (now per site)
 ANOMALY_COUNT = Gauge(
@@ -81,6 +82,16 @@ def update_metrics():
         return
 
     df = compute_anomalies(df)
+
+    # Save anomalies to CSV for correlation job
+    anomalies_df = df[df["anomaly_label"] == -1].copy()
+    if not anomalies_df.empty:
+        # Ensure we have the columns needed by correlation job
+        if "timestamp_unix" not in anomalies_df.columns and "timestamp" in anomalies_df.columns:
+            anomalies_df["timestamp_unix"] = anomalies_df["timestamp"]
+        ANOMALIES_CSV.parent.mkdir(parents=True, exist_ok=True)
+        anomalies_df.to_csv(ANOMALIES_CSV, index=False)
+        print(f"[ANOMALY_EXPORTER] Saved {len(anomalies_df)} anomalies to {ANOMALIES_CSV}")
 
     # Compute metrics per site
     for site, site_df in df.groupby("site"):

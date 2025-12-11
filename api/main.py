@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Dict
 
+import time
 import os
 import re
 import requests
@@ -8,6 +9,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 # Enable CORS for external CDN resources
 app = FastAPI(
@@ -128,10 +130,82 @@ def load_anomalies_from_metrics() -> List[Dict]:
 
     return anomalies
 
+class FreshnessRecord(BaseModel):
+    site: str
+    latest_timestamp: float
+    age_seconds: float
+
+
+def compute_freshness_per_site() -> List[FreshnessRecord]:
+    """
+    Returns per-site latest timestamp and age in seconds.
+    Logic: group by 'site' column if present; else single group 'UNKNOWN'.
+    """
+    now = time.time()
+    if not TRANSFERS_CSV.exists():
+        return []
+
+    try:
+        df = pd.read_csv(TRANSFERS_CSV)
+    except Exception:
+        return []
+
+    if "timestamp_unix" not in df.columns and "timestamp" in df.columns:
+        # accommodate different timestamp names
+        df["timestamp_unix"] = df["timestamp"]
+
+    # Ensure numeric
+    df = df.dropna(subset=["timestamp_unix"])
+    if df.empty:
+        return []
+
+    if "site" in df.columns:
+        groups = df.groupby("site")
+    else:
+        # everything belongs to UNKNOWN site
+        df["site"] = "UNKNOWN"
+        groups = df.groupby("site")
+
+    records = []
+    for site, g in groups:
+        try:
+            latest = float(g["timestamp_unix"].max())
+        except Exception:
+            continue
+        age = now - latest
+        records.append(
+            FreshnessRecord(
+                site=str(site),
+                latest_timestamp=latest,
+                age_seconds=round(age, 3),
+            )
+        )
+
+    # Sort by site name for deterministic output
+    records = sorted(records, key=lambda x: x.site)
+    return records
+
 
 # -----------------------------
 # API Endpoints
 # -----------------------------
+@app.get("/")
+def root():
+    return {
+        "service": "DTMS Monitoring API",
+        "version": "0.1.0",
+        "endpoints": {
+            "health": "/health",
+            "sites": "/sites",
+            "aggregates": "/aggregates",
+            "anomalies": "/anomalies",
+            "freshness": "/freshness",
+            "docs": "/docs",
+            "redoc": "/redoc"
+        }
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "dtms-api"}
@@ -163,3 +237,28 @@ def get_anomalies():
         raise HTTPException(status_code=500, detail=f"Failed to load anomalies: {e}")
 
     return {"anomalies": anomalies}
+
+@app.get("/freshness")
+def get_freshness() -> Dict[str, List[Dict]]:
+    """
+    Returns per-site data freshness: latest timestamp and age in seconds.
+    
+    Response format:
+    {
+      "sites": [
+        {"site":"SITE_A", "latest_timestamp": 1765..., "age_seconds": 12.3},
+        ...
+      ]
+    }
+    """
+    records = compute_freshness_per_site()
+    return {
+        "sites": [
+            {
+                "site": r.site,
+                "latest_timestamp": r.latest_timestamp,
+                "age_seconds": r.age_seconds,
+            }
+            for r in records
+        ]
+    }

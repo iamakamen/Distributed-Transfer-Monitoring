@@ -1,17 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dtms-prometheus
-  namespace: iamakamen-dev
+  name: prometheus
+  labels:
+    app: prometheus
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dtms-prometheus
+      app: prometheus
   template:
     metadata:
       labels:
-        app: dtms-prometheus
+        app: prometheus
     spec:
       containers:
         - name: prometheus
@@ -19,21 +20,24 @@ spec:
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
+            - "--web.listen-address=0.0.0.0:9090"
           ports:
             - containerPort: 9090
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1536Mi"
           volumeMounts:
-            - name: config
-              mountPath: /etc/prometheus/prometheus.yml
-              subPath: prometheus.yml
+            - name: prometheus-config
+              mountPath: /etc/prometheus
             - name: prometheus-storage
               mountPath: /prometheus
       volumes:
-        - name: config
+        - name: prometheus-config
           configMap:
-            name: dtms-prometheus-config
-            items:
-              - key: prometheus.yml
-                path: prometheus.yml
+            name: prometheus-config
         - name: prometheus-storage
-          emptyDir:
-            sizeLimit: 500Mi
+          emptyDir: {}

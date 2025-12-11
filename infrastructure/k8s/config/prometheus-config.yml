@@ -1,18 +1,39 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dtms-prometheus-config
+  name: prometheus-config
   namespace: iamakamen-dev
 data:
   prometheus.yml: |
     global:
-      scrape_interval: 5s
+      scrape_interval: 10s
+      evaluation_interval: 10s
 
     scrape_configs:
-      - job_name: "dtms_exporter"
+      - job_name: 'dtms_exporters'
         static_configs:
-          - targets: ["exporter:8000"]
+          - targets:
+              - 'exporter-site-a:8000'
+              - 'exporter-site-b:8000'
+              - 'exporter-site-c:8000'
 
-      - job_name: "dtms_anomaly_exporter"
+      - job_name: 'dtms_anomaly'
         static_configs:
-          - targets: ["anomaly:8001"]
+          - targets:
+              - 'anomaly:8001'
+
+      - job_name: 'dtms_streaming'
+        static_configs:
+          - targets:
+              - 'dtms-spark-exporter:8002'
+
+      - job_name: 'dtms_freshness'
+        static_configs:
+          - targets:
+              - 'freshness:8004'
+      
+      - job_name: 'dtms_pushgateway'
+        static_configs:
+          - targets:
+              - 'pushgateway:9091'
+

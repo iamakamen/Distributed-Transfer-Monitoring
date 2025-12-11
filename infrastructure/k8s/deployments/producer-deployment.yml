@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-producer
+  labels:
+    app: dtms-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-producer
+  template:
+    metadata:
+      labels:
+        app: dtms-producer
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: producer
+          image: ghcr.io/iamakamen/dtms-sys:v1
+          command: ["python", "-m", "streaming.producer"]
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"

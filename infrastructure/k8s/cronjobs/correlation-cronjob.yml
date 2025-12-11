@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dtms-correlation
+spec:
+  schedule: "*/10 * * * *"   # every 10 minutes
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-secret
+          containers:
+            - name: correlation
+              image: ghcr.io/iamakamen/dtms-sys:v1
+              command: ["python", "/app/tools/correlation_job.py"]
+              env:
+                - name: PUSHGATEWAY_URL
+                  value: "http://pushgateway:9091"
+                - name: PUSHGATEWAY_JOB
+                  value: "dtms_correlation"
+                - name: PUSHGATEWAY_INSTANCE
+                  value: "cluster1"
+              volumeMounts:
+                - name: dtms-data
+                  mountPath: /app/data
+                  readOnly: true
+          volumes:
+            - name: dtms-data
+              persistentVolumeClaim:
+                claimName: dtms-data

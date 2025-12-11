@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtms-freshness
+  labels:
+    app: dtms-freshness
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtms-freshness
+  template:
+    metadata:
+      labels:
+        app: dtms-freshness
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: freshness
+          image: ghcr.io/iamakamen/dtms-fresh:v1
+          env:
+            - name: API_BASE_URL
+              value: "http://dtms-api:8003"
+            - name: PORT
+              value: "8004"
+            - name: POLL_INTERVAL_SECONDS
+              value: "30"
+            - name: FRESHNESS_THRESHOLD_SECONDS
+              value: "300"
+          ports:
+            - containerPort: 8004
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

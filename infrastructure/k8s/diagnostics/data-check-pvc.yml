@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-check
+  namespace: iamakamen-dev
+spec:
+  restartPolicy: Never
+  containers:
+  - name: data-check
+    image: ghcr.io/iamakamen/dtms-sys:correlation
+    command:
+    - bash
+    - -lc
+    - |
+      set -e
+      ls -l /app/data || true
+      wc -l /app/data/*.csv 2>/dev/null || true
+      python - <<'PY'
+      import pandas as pd, time
+      from pathlib import Path
+      now=time.time(); win=180*60
+      for path in [Path('/app/data/transfers.csv'), Path('/app/data/anomalies.csv')]:
+        print('\n--', path)
+        if not path.exists():
+          print('missing'); continue
+        df = pd.read_csv(path)
+        if 'timestamp_unix' not in df and 'timestamp' in df:
+          df['timestamp_unix'] = df['timestamp']
+        df = df[df['timestamp_unix'] >= now - win]
+        print('rows in window:', len(df))
+        print(df.head())
+      PY
+    volumeMounts:
+    - name: dtms-data
+      mountPath: /app/data
+      readOnly: true
+  volumes:
+  - name: dtms-data
+    persistentVolumeClaim:
+      claimName: dtms-data
+      readOnly: true

@@ -1,5 +1,5 @@
 import os
-from pathlib import Path  # NEW
+from pathlib import Path
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, avg
 from pyspark.sql.types import StructType, StructField, DoubleType, LongType, StringType
@@ -26,13 +26,9 @@ print("[spark_exporter] Prometheus metrics server on :8002/metrics")
 bootstrap_servers = os.getenv("BOOTSTRAP_SERVERS", "localhost:9092")
 print(f"[spark_exporter] Using bootstrap servers: {bootstrap_servers}")
 
-# Base directory (repo root inside container is /app)
-BASE_DIR = Path(__file__).resolve().parent.parent
-PARQUET_DIR = BASE_DIR / "sample_data" / "parquet" / "site_aggregates"
-
-# Ensure parent folder exists (Spark will create leaf dir)
-PARQUET_DIR.parent.mkdir(parents=True, exist_ok=True)
-print(f"[spark_exporter] Writing Parquet aggregates to: {PARQUET_DIR}")
+# Write to mounted persistent volume (dtms-data PVC mounted at /app/data)
+PARQUET_DIR = Path("/app/data/spark_aggregates")
+print(f"[spark_exporter] Target Parquet directory: {PARQUET_DIR}")
 
 
 # Spark session with Kafka connector
@@ -42,11 +38,15 @@ spark = SparkSession.builder \
         "spark.jars.packages",
         "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1"
     ) \
+    .config("spark.jars.ivy", os.getenv("IVY_CACHE_DIR", "/tmp/.ivy2")) \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("WARN")
 
-# Schema of incoming records (matches producer events)
+# Suppress specific Kafka warnings
+import logging
+logging.getLogger("kafka").setLevel(logging.ERROR)
+logging.getLogger("org.apache.kafka").setLevel(logging.ERROR)
 schema = StructType([
     StructField("event_type", StringType(), True),
     StructField("src_site", StringType(), True),
@@ -98,10 +98,17 @@ def update_metrics(batch_df, batch_id):
             f"avg_bytes={avg_bytes:.2f}, avg_latency={avg_latency:.2f} ms"
         )
     
-    
-    # NEW: write per-site aggregates to Parquet
-    agg_df.write.mode("append").parquet(str(PARQUET_DIR))
-    print(f"[spark_exporter] Batch {batch_id}: wrote aggregates to {PARQUET_DIR}")
+    try:
+        # Ensure directory exists before writing
+        PARQUET_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Write per-site aggregates to Parquet with overwrite mode (simpler)
+        agg_df.write.mode("overwrite").parquet(str(PARQUET_DIR))
+        print(f"[spark_exporter] Batch {batch_id}: wrote aggregates to {PARQUET_DIR}")
+    except Exception as e:
+        print(f"[spark_exporter] ERROR writing Parquet: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 query = parsed.writeStream \
