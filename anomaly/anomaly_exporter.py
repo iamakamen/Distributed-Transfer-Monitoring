@@ -40,8 +40,11 @@ def load_data():
         return None
 
     try:
-        # Skip bad lines to handle malformed CSV rows
-        df = pd.read_csv(TRANSFERS_CSV, error_bad_lines=False, warn_bad_lines=False)
+        # on_bad_lines='skip' is the correct parameter for pandas 2.x
+        df = pd.read_csv(TRANSFERS_CSV, on_bad_lines='skip')
+        if df.empty:
+            print("[ANOMALY_EXPORTER] CSV is empty after skipping bad lines")
+            return None
     except Exception as e:
         print(f"[ANOMALY_EXPORTER] Error reading CSV: {e}")
         return None
