@@ -39,17 +39,12 @@ deploy_to_oc:
     name: registry.redhat.io/openshift4/ose-cli:latest
   stage: deploy
   script:
-    - echo "Deploy stage: substitute dtms-sys image references and apply manifests"
+    - echo "Deploying to OpenShift..."
     - oc login $OC_SERVER --token="$OC_TOKEN" --insecure-skip-tls-verify=true
     - oc project $OC_PROJECT
-    - MANIFEST_DIR="infrastructure/k8s"
-    - echo "Replacing dtms-sys image tags in YAML manifests under $MANIFEST_DIR"
-    - find $MANIFEST_DIR -type f -name "*.yml" -print0 | xargs -0 sed -i "s|ghcr.io/$GHCR_USER/dtms-sys:[^ \"']*|ghcr.io/$GHCR_USER/dtms-sys:$IMAGE_TAG|g" || true
-    - echo "---- Applying manifests ----"
-    - oc apply -f $MANIFEST_DIR/deployments/ -n $OC_PROJECT || true
-    - oc apply -f $MANIFEST_DIR/services/ -n $OC_PROJECT || true
-    - oc apply -f $MANIFEST_DIR/cronjobs/ -n $OC_PROJECT || true
-    - oc set image cronjob/dtms-correlation correlation=ghcr.io/$GHCR_USER/dtms-sys:$IMAGE_TAG -n $OC_PROJECT || true
+    - oc apply -f infrastructure/k8s/deployments/ -n $OC_PROJECT || true
+    - oc apply -f infrastructure/k8s/services/ -n $OC_PROJECT || true
+    - oc apply -f infrastructure/k8s/cronjobs/ -n $OC_PROJECT || true
     - oc rollout restart deployment/dtms-api -n $OC_PROJECT || true
     - oc rollout restart deployment/dtms-freshness -n $OC_PROJECT || true
-    - echo "Deployment finished"
+    - echo "Deployment completed"
