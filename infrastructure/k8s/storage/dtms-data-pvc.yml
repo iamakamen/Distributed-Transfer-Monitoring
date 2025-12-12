@@ -4,8 +4,9 @@ metadata:
   name: dtms-data
   namespace: iamakamen-dev
 spec:
+  storageClassName: efs-sc
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 1Gi
